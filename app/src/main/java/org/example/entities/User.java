@@ -1,19 +1,25 @@
 package org.example.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import com.fasterxml.jackson.databind.annotation.JsonNaming;
+
 import java.util.List;
+
+@JsonNaming (PropertyNamingStrategy.SnakeCaseStrategy.class)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class User {
     private String name;
     private String password;
-    private String hashedPassword;
     private List<Ticket> ticketBooked;
     private String userId;
 
     public User(){}
 
-    public User(String name,String password,String hashedPassword,List<Ticket> ticketBooked,String userId){
+    public User(String name,String password,List<Ticket> ticketBooked,String userId){
         this.name = name;
         this.password = password;
-        this.hashedPassword = hashedPassword;
         this.ticketBooked = ticketBooked;
         this.userId = userId;
     }
@@ -33,15 +39,6 @@ public class User {
 
     public void setPassword(String password) {
         this.password = password;
-    }
-
-    // Getter and Setter for hashedPassword
-    public String getHashedPassword() {
-        return hashedPassword;
-    }
-
-    public void setHashedPassword(String hashedPassword) {
-        this.hashedPassword = hashedPassword;
     }
 
     // Getter and Setter for ticketBooked

@@ -3,12 +3,174 @@
  */
 package org.example;
 
+import org.example.Utils.UserServiceUtil;
+import org.example.entities.Train;
+import org.example.entities.User;
+import org.example.services.UserBookingService;
+
+import java.io.IOException;
+import java.util.*;
+
 public class App {
-    public String getGreeting() {
-        return "Hello World!";
+   public static void handleSignup(UserBookingService userBookingService){
+       Scanner sc = new Scanner(System.in);
+       System.out.println("Enter the username");
+       String username = sc.next();
+       System.out.println("Enter the password");
+       String password = sc.next();
+       User user = new User(username, UserServiceUtil.hashPassword(password),new ArrayList<>(), UUID.randomUUID().toString());
+       userBookingService.signUp(user);
+   }
+
+    public static void handleSignin(UserBookingService userBookingService){
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Enter the username");
+        String username = sc.next();
+        System.out.println("Enter the password");
+        String password = sc.next();
+        User user = new User(username, UserServiceUtil.hashPassword(password),new ArrayList<>(), UUID.randomUUID().toString());
+        try {
+            userBookingService = new UserBookingService(user);
+        } catch (IOException ex){
+            return;
+        }
+    }
+
+    public static Train handleSearchTrains(UserBookingService userBookingService, Train trainSelectedForBooking ){
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Type your source station");
+        String source = sc.next();
+        System.out.println("Type your destination station");
+        String destination = sc.next();
+        List<Train> trains = userBookingService.getTrains(source,destination);
+        if (trains.isEmpty()) {
+            System.out.println("No trains found between " + source + " and " + destination);
+            return null;
+        }
+        int index = 1;
+        for(Train t : trains){
+            System.out.println(index + " Train id : " +t.getTrainId() );
+            for(Map.Entry<String,String> entry : t.getStationTimes().entrySet()){
+                System.out.println("station "+ entry.getKey() + "+ time: "+ entry.getValue());
+            }
+            index++;
+        }
+        System.out.println("Select a train by typing 1,2,3...");
+        int selection = sc.nextInt();
+
+        if (selection > 0 && selection <= trains.size()) {
+            trainSelectedForBooking = trains.get(selection - 1);
+            return trainSelectedForBooking;
+        } else {
+            System.out.println("Invalid train selection");
+            return null;
+        }
+    }
+
+    public  static void handleSeatBooking(UserBookingService userBookingService, Train trainSelectedForBooking){
+        System.out.println("Select a seat out of these seats");
+        List<List<Integer>> seats = userBookingService.fetchSeats(trainSelectedForBooking);
+        for(List<Integer> row: seats){
+            for(Integer val: row){
+                System.out.println(val + " ");
+            }
+        }
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Select the seat t[i][j] i = row , j = column ");
+        System.out.println("Enter the row");
+        int row = sc.nextInt();
+        System.out.println("Enter the column");
+        int column = sc.nextInt();
+        System.out.println("processing..., please wait");
+        Boolean booked = userBookingService.bookTrainSeat(trainSelectedForBooking,row,column);
+        if(booked.equals(Boolean.TRUE)){
+            System.out.println("Your ticket has been booked successfully! Happy Journey");
+        }
+        else{
+            System.out.println("Can't process your request for this seat!!!");
+        }
+    }
+
+    public static void handleCancelBooking(UserBookingService userBookingService) {
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Please enter the Ticket ID you want to cancel:");
+        String ticketId = sc.next();
+
+        if (ticketId == null || ticketId.isEmpty()) {
+            System.out.println("Ticket ID cannot be null or empty. Please try again.");
+            return;
+        }
+
+        System.out.println("Processing cancellation request...");
+
+        Boolean isCancelled = userBookingService.cancelBooking(ticketId);
+
+        if (isCancelled) {
+            System.out.println("Ticket with ID " + ticketId + " has been successfully canceled.");
+        } else {
+            System.out.println("Unable to cancel the ticket. Please ensure the Ticket ID is correct.");
+        }
     }
 
     public static void main(String[] args) {
-
+        System.out.println("Welcome to the ticket booking app");
+        Scanner scanner = new Scanner(System.in);
+        int choice;
+        UserBookingService userBookingService;
+        try {
+            userBookingService = new UserBookingService();
+        } catch (IOException ex){
+            System.out.println(("An error occured"));
+            ex.printStackTrace();
+            return;
+        }
+        while(true){
+            System.out.println("***************************************  Running Train Booking System  ***************************************");
+            System.out.println("Choose option");
+            System.out.println("1. Sign up");
+            System.out.println("2. Login");
+            System.out.println("3. Fetch Bookings");
+            System.out.println("4. Search Trains");
+            System.out.println("5. Book a Seat");
+            System.out.println("6. Cancel my Booking");
+            System.out.println("7. Exit the App");
+            System.out.println("Enter your choice");
+            choice = scanner.nextInt();
+            Train trainSelectedForBooking = new Train();
+            switch(choice){
+                case 1:
+                    handleSignup(userBookingService);
+                    break;
+                case 2:
+                    handleSignin(userBookingService);
+                    break;
+                case 3:
+                    if (userBookingService != null) {
+                        System.out.println("Fetching your bookings...");
+                        userBookingService.fetchBookings();
+                    } else {
+                        System.out.println("Error: UserBookingService is not initialized.");
+                    }
+                    break;
+                case 4:
+                    Train selectedTrain = handleSearchTrains(userBookingService, trainSelectedForBooking);
+                    if (selectedTrain != null) {
+                        trainSelectedForBooking = selectedTrain;
+                    }
+                    break;
+                case 5:
+                    handleSeatBooking(userBookingService,trainSelectedForBooking);
+                    break;
+                case 6:
+                    handleCancelBooking(userBookingService);
+                    break;
+                case 7:
+                    System.out.println("Closing the app...., Thank you for visiting us.");
+                    break;
+                default:
+                    System.out.println("Invalid choice");
+                    break;
+            }
+        }
     }
 }
